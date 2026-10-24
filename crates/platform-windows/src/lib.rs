@@ -1,8 +1,25 @@
-//! Windows backend. PLATFORM-WINDOWS.md.
+//! Windows backend (M2, capture only). See docs/PLATFORM-WINDOWS.md.
 //!
-//! M2: 전용 control thread의 `WH_KEYBOARD_LL`/`WH_MOUSE_LL` + Raw Input(`WM_INPUT`) capture,
-//! suppression latch, lease 직접 검사. 지금은 빈 자리만 잡아 둔다.
-#![cfg(windows)]
+//! * [`model`], [`normalize`], [`queue`] and [`histogram`] are portable and unit-tested on any host.
+//! * On Windows, [`CaptureSession`] runs a dedicated control thread with a hidden window,
+//!   `WH_KEYBOARD_LL`/`WH_MOUSE_LL` hooks and Raw Input mouse motion, and hands normalized
+//!   [`CaptureEvent`]s to the caller through a bounded lock-free queue.
+//!
+//! Capture never suppresses local input, opens network connections or listens on a port.
 
-/// backend가 아직 없음을 알리는 자리표시자.
-pub const IMPLEMENTED: bool = false;
+pub mod histogram;
+pub mod model;
+pub mod normalize;
+pub mod queue;
+
+#[cfg(windows)]
+mod win32;
+
+pub use model::{
+    CaptureEvent, CaptureEventKind, CaptureFault, CaptureRecvError, CaptureStats, DisplayConfig,
+    DisplayReason, DpiAwareness, DurationSummary, KeyEvent, KeyState, Modifier, MonitorInfo,
+    MouseButton, MouseButtonEvent, MouseWheelEvent, RawDeviceChange, RawMotion, RawMouseMotion,
+    WheelAxis,
+};
+#[cfg(windows)]
+pub use win32::{CaptureSession, CaptureStop, QUEUE_CAPACITY};

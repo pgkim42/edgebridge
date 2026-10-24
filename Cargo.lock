@@ -104,6 +104,9 @@ dependencies = [
 [[package]]
 name = "edgebridge-platform-windows"
 version = "0.1.0"
+dependencies = [
+ "windows-sys",
+]
 
 [[package]]
 name = "edgebridge-protocol"
