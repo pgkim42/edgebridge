@@ -6,7 +6,7 @@
 
 | 우선순위 | 질문 | 현재 기본값 | 결정 시점 / 영향 |
 |---|---|---|---|
-| P0 | 원문 Barrier 상호운용까지 완수할 것인가, 개인 EdgeBridge 완성이 먼저인가? | 자체 protocol 우선 | M0 전 재확인 권장. 호환 필수라면 codec/fixture/roadmap이 달라짐 |
+| ~~P0~~ | ~~원문 Barrier 상호운용까지 완수할 것인가?~~ | **결정됨 (2026-10-24): 자체 protocol.** Barrier 호환은 선택적 후속 track | [ADR-012](DECISIONS.md) |
 | P1 | Ctrl를 Mac Command로 바꿀 것인가? | physical; ctrl-cmd-swap 선택 가능 | M4 전. Terminal Ctrl+C와 일반 앱 Cmd+C의 tradeoff |
 | P1 | 실제 Windows 키보드는 ANSI/한국어 103/106-key 중 무엇이며 OS layout은? | 관측 전 미정 | M2/M4. RightAlt·한영·한자 normalization 결정 |
 | P1 | 정상 화면 전환 때 모든 키/버튼을 놓아야 하는 제한을 수용하는가? | all-up 정책 | M5. held transfer를 원하면 별도 transaction 설계 |

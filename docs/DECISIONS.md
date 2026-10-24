@@ -116,7 +116,9 @@
 
 **결과:** IP 변경 시 config 변경 필요. mDNS는 pairing 이후 편의 기능으로 추가. 서로 다른 물리 모니터 높이를 정확히 맞추지 않는다. 지원 밖 모니터 배치는 거부하고 확대를 조용히 추정하지 않는다.
 
-## ADR-012 — 자체 protocol 우선 / Accepted for this design
+## ADR-012 — 자체 protocol 우선 / Accepted (2026-10-24 사용자 확정)
+
+**확정:** 2026-10-24 사용자가 자체 protocol로 가기로 결정했다. 학습 목적 + 장비 두 대가 이유다. Barrier 호환은 원하면 나중에 별도 adapter track(ROADMAP 확장 항목)으로 추가하며 v1 codec을 바꾸지 않는다.
 
 **상황:** 원문은 Barrier 호환 구현을 요구하지만 요청된 HID/TOML/학습 순서는 독자 protocol 설계에 적합하다.
 
