@@ -1,6 +1,6 @@
 # 로드맵과 수락 기준
 
-상태: 전 단계 미착수. 이 문서는 완료 보고서가 아니다. milestone 완료는 코드 존재가 아니라 아래 관측 가능한 조건으로 판정한다. 개발 순서는 **Mac client → Windows capture → 연결 → keyboard → edge → fault → 보안 → clipboard**다.
+상태: M0 완료, M1 구현·자동 검증 완료 / 실기기 수락 대기 (2026-10-24). 이 문서는 완료 보고서가 아니다. milestone 완료는 코드 존재가 아니라 아래 관측 가능한 조건으로 판정한다. 개발 순서는 **Mac client → Windows capture → 연결 → keyboard → edge → fault → 보안 → clipboard**다.
 
 ## M0 — workspace skeleton / 계약 고정
 
@@ -22,10 +22,12 @@ Mac loopback fake server가 listen, Mac client가 접속한다. 선택 화면·�
 
 - [ ] Accessibility 거부 시 Ready/주입 없음. 허용 후 정상 연결. Input Monitoring 요청 없음.
 - [ ] center와 네 corner의 안쪽 좌표로 이동하고 관측 위치 오차 <=1 logical unit. Retina 기본/다른 scaled mode에서 각각 확인.
-- [ ] 화면 local/global origin 변환을 fake fixture로 검증. invalid screen/NaN/out-of-range는 OS post 전에 거부.
-- [ ] Enter 이전 move, 다른 epoch move가 주입되지 않고 session이 종료됨.
+- [x] 화면 local/global origin 변환을 fake fixture로 검증. invalid screen/NaN/out-of-range는 OS post 전에 거부.
+- [x] Enter 이전 move, 다른 epoch move가 주입되지 않고 session이 종료됨.
 - [ ] fake server EOF/blackhole 뒤 inactive로 복귀. 100회 Enter/Leave에도 held ledger가 비어 있음.
 - [ ] 실행 주체/TCC, OS/SDK/CPU, display logical/pixel 정보를 기록. 테스트 중 client를 안전하게 종료할 수 있음.
+
+자동 검증: `core/tests/session.rs`의 100회 epoch/ledger·fake clock·범위 검사와 `client/tests/actor.rs`의 실제 TCP + recorder backend가 정상/클릭/EOF/blackhole/잘못된 epoch/권한 거부/actor barrier/오래된 큐를 확인한다. 위 체크된 항목은 순수·메모리 backend 증거이며 실제 Quartz 성공을 뜻하지 않는다. EOF/blackhole의 메모리 release는 통과했지만 해당 실기기 항목은 체크하지 않았다. OS/SDK/CPU는 [M1 검증 기록](M1-VERIFICATION.md)에 기록했고 TCC 귀속·display 정보·위치 오차·실제 종료 복구는 사용자 실험 대기다.
 
 ## M2 — Windows capture-only logging + Raw Input spike
 

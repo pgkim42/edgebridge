@@ -2,7 +2,7 @@
 
 Windows 데스크톱에 연결된 키보드·마우스로 왼쪽의 MacBook을 조작하는 개인용 software KVM. 화면 영상은 전송하지 않는다. 두 컴퓨터는 자기 화면을 표시하고, 입력만 LAN으로 전달한다.
 
-**현재 상태: M0 완료 (2026-10-24).** Cargo workspace, wire codec, handshake/heartbeat, config 검증, loopback fake peer가 있다. 실제 입력 capture/injection(M1~)은 아직 없다. 문서의 수치와 동작은 구현 계약 또는 검증 목표이며, 실기기 검증 결과가 아니다.
+**현재 상태: M0 완료, M1 구현·자동 검증 완료 / 실기기 수락 대기 (2026-10-24).** Mac client에 권한·화면 검사, Enter/절대 이동/단일 클릭·drag/Leave, ledger/epoch/lease 복구를 구현했다. 자동 테스트는 메모리 backend만 사용하며 실제 커서나 TCC를 건드리지 않는다. 실기기 injection과 Retina 오차는 아직 검증하지 않았다. [M1 수동 검증](docs/M1-VERIFICATION.md).
 
 ```text
 물리 배치                   키보드 + 마우스
@@ -45,12 +45,12 @@ TCP 연결 시작: Mac client --> Windows server (기본 제안 포트 24810)
 toolchain은 `rust-toolchain.toml`(1.96.0)로 고정된다.
 
 ```sh
+cargo fmt --all
 cargo test --workspace                              # 단위 + golden + loopback 테스트
 cargo clippy --workspace --all-targets -- -D warnings
 cargo check --workspace --target x86_64-pc-windows-msvc   # Mac에서 Windows 타깃 타입 검사만
 
-# config 검증 (backend는 아직 없어 exit 69로 끝난다)
-cargo run -p edgebridge-client -- --config config/client.example.toml
+# server는 아직 config 검증 후 exit 69. 실제 client 실행은 M1 수동 검증 문서 참조.
 cargo run -p edgebridge-server -- --config config/server.example.toml
 
 # loopback fake peer: handshake + heartbeat + Disconnect
@@ -61,10 +61,10 @@ cargo run -p edgebridge-test-peer -- fake-client --connect 127.0.0.1:24899 --poi
 | crate | 역할 |
 |---|---|
 | `crates/protocol` | frame codec, message DTO, 한계값. OS/async 의존 없음 |
-| `crates/core` | handshake, heartbeat/lease, epoch, HID 이름표, TOML config |
-| `crates/platform-windows` / `platform-macos` | OS backend 자리 (M2 / M1) |
-| `crates/server` / `client` | 실행 파일. 지금은 config 검증만 |
-| `crates/test-peer` | loopback fake server/client |
+| `crates/core` | handshake, heartbeat/lease, client session·ledger·좌표, epoch, HID, TOML config |
+| `crates/platform-windows` / `platform-macos` | Windows stub / Quartz 권한·화면·mouse injection |
+| `crates/server` / `client` | server config 검증 / Tokio network + main-thread client actor |
+| `crates/test-peer` | loopback fake server/client, `--script` M1 이동/클릭/EOF/blackhole |
 
 ## 출발점과 범위 차이
 

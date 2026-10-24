@@ -147,3 +147,18 @@
 **결정:** M7 이후 opt-in UTF-8 text, 1MiB 상한 후보. v1.0에서는 reserved만 존재한다. M8에서 origin/change ID·동시 변경·취소·bulk 우선순위를 정의한 v1.1 계약을 먼저 쓴다.
 
 **결과:** 초기 KVM에서 clipboard가 없는 것은 의도된 범위다. 동일 TCP bulk로 input이 지연되면 chunk scheduling/별도 stream을 측정한다. 비밀번호 자동 판별을 약속하지 않는다.
+
+
+## ADR-015 — M1 Quartz wrapper와 제한된 pointer 구현 / Accepted (2026-10-24)
+
+**상황:** M1의 필수 범위는 권한/선택 화면/Enter/절대 이동/Leave/복구이며 AppKit keyboard·clipboard는 아직 없다.
+
+**대안:** objc2-core-graphics + objc2-application-services의 generated binding, core-graphics + core-foundation의 RAII wrapper, 직접 전체 C FFI.
+
+**결정:** `core-graphics 0.25.0` + `core-foundation 0.10.1`을 Cargo.lock에 고정한다. [wrapper API](https://docs.rs/core-graphics/0.25.0/core_graphics/)의 event/source/display mode RAII를 사용하고, 누락된 AXIsProcessTrusted / CGPreflightPostEventAccess / CGRequestPostEventAccess 세 함수만 좁은 extern으로 보완한다. objc2는 AppKit 사용 시 재검토한다. 소유권 wrapper를 혼합하지 않는다. 기본은 무프롬프트 조회이고 `--request-permission`만 post 권한 요청을 실행한다. Input Monitoring API는 호출하지 않는다.
+
+**실행:** ADR-009대로 Tokio reader/writer와 main-thread actor를 분리한다. CFRunLoop를 짧게 pump하며 OS 객체는 actor에만 둔다. 512 command/frame bounded queue, 100ms age, 25ms lease tick, 1s permission/display health, 250ms write timeout을 적용한다. actor가 앞선 post를 마친 뒤 ACK/Pong을 생성한다. main-thread stall 동안 네트워크 reader는 Pong을 만들지 않는다.
+
+**M1 제한/이탈:** 단일 비회전·비미러 내장 화면만 허용한다(`main`도 이 조건을 만족해야 함). Button 5종과 oldest-held drag owner, down/up click-state=1을 구현한다. OS doubleClickInterval에 따른 2/3-click chain은 M3로 미루며 현재 다중 클릭을 지원한다고 주장하지 않는다. Scroll/Keyboard capability는 광고하지 않는다. AppKit sleep/lock 및 display callback은 아직 없고 display 변경은 1s health polling으로 감지한다. 자동 재접속 없이 실패 시 종료하므로 새 실행/새 handshake가 필요하다. sleep/lock/crash·권한 철회 직후의 실제 release 보장은 M6 실험 전 미정이다.
+
+**결과:** `core`는 post 명령을 반환하고 actor는 성공한 호출만 ledger에 commit한다. backend 실패 시 남은 입력/ACK를 실행하지 않고 epoch 종료 + ledger release를 시도한다. CGEventPost의 void 반환 때문에 앱 소비 성공까지 보장하지 않는다. 실제 커서 주입은 이번 구현 작업에서 실행하지 않았다.

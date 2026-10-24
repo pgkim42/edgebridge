@@ -7,6 +7,7 @@ pub mod epoch;
 pub mod handshake;
 pub mod heartbeat;
 pub mod hid;
+pub mod session;
 pub mod time;
 
 pub use time::Millis;

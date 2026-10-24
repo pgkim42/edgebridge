@@ -10,9 +10,13 @@ publish.workspace = true
 [dependencies]
 edgebridge-protocol.workspace = true
 edgebridge-core.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "signal", "macros"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 edgebridge-platform-macos.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+edgebridge-test-peer = { path = "../test-peer" }

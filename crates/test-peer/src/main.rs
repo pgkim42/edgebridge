@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use edgebridge_protocol::Capabilities;
 use edgebridge_test_peer::{
-    ClientOptions, ServerOptions, run_fake_client, run_fake_server, sample_mac_screen,
+    ClientOptions, Script, ServerOptions, run_fake_client, run_script_server, sample_mac_screen,
 };
 
 const DEFAULT_ADDR: &str = "127.0.0.1:24810";
@@ -22,6 +22,7 @@ fn main() -> ExitCode {
         return ExitCode::from(64);
     };
     let mut addr: SocketAddr = DEFAULT_ADDR.parse().expect("default addr");
+    let mut script = Script::Heartbeat;
     let mut caps = Capabilities::ALL_V1;
     let mut hold = Duration::from_secs(2);
     while let Some(arg) = args.next() {
@@ -31,6 +32,16 @@ fn main() -> ExitCode {
                 Ok(a) => addr = a,
                 Err(e) => return usage(&format!("bad address: {e}")),
             },
+            "--script" => {
+                script = match value(&mut args).as_str() {
+                    "m1" => Script::M1,
+                    "click" => Script::Click,
+                    "eof" => Script::Eof,
+                    "blackhole" => Script::Blackhole,
+                    "heartbeat" => Script::Heartbeat,
+                    _ => return usage("script: heartbeat|m1|click|eof|blackhole"),
+                }
+            }
             "--pointer-only" => caps = Capabilities::POINTER,
             "--hold-ms" => match value(&mut args).parse() {
                 Ok(ms) => hold = Duration::from_millis(ms),
@@ -54,7 +65,7 @@ fn main() -> ExitCode {
                     capabilities: caps,
                     hold,
                 };
-                run_fake_server(&listener, &opts)
+                run_script_server(&listener, &opts, script)
             }),
         "fake-client" => {
             let opts = ClientOptions {

@@ -43,7 +43,7 @@ fractional wheel delta가 작은 값으로 여러 번 왔을 때 총량이 보�
 ## 나중에 확정할 운영 결정
 
 - **OS 최소 버전:** 사용 장비 OS build를 먼저 기록. Swift/ObjC bindings API availability와 TLS provider 지원에 맞춰 명시. “최신 OS”를 영구 지원 기준으로 쓰지 않는다.
-- **crate 선택:** Mac core-graphics/objc2-core-graphics의 실제 API coverage와 ownership 간결성을 M1에서 비교. Windows는 공식 windows bindings 기준. Cargo workspace를 만드는 시점에 version/MSRV를 고정한다.
+- **crate 선택:** Mac은 M1에서 core-graphics 0.25 + core-foundation 0.10을 채택했다([ADR-015](DECISIONS.md)); AppKit 요구가 생기면 objc2를 재검토한다. Windows는 공식 windows bindings 기준. Cargo workspace를 만드는 시점에 version/MSRV를 고정한다.
 - **감도/가속:** count→logical unit 1.0, no acceleration은 기본 실험값. Windows/Mac 사용감 일치가 필요하면 별도 curve/물리 DPI calibration. Retina 배율로 감도를 억지 보정하지 않는다.
 - **timeout:** 250ms Ping/1000ms lease/100ms queue age는 LAN 초기 정책. Wi-Fi 지터로 false fail이 많으면 정상 부하와 장애 복구 시간을 함께 측정해 조정. timeout 완화가 stuck 시간을 늘린다는 tradeoff를 기록한다.
 - **TLS identity:** leaf pin vs private CA trust 구조, 인증서 만료/시계 오차, 키 분실·교체·폐기 UX, macOS Keychain/Windows key protection. signature 검증을 생략하지 않는 rustls integration 확인.

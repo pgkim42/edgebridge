@@ -1,6 +1,6 @@
 # EdgeBridge wire protocol v1.0 제안
 
-상태: 설계 계약, 아직 구현/호환성 검증 없음. 변경하면 이 문서와 [DECISIONS](DECISIONS.md)를 함께 수정한다. **Barrier 호환 wire가 아니다.** `Hello` 등의 이름이 유사해도 message code/encoding은 다르다.
+상태: M0 codec/handshake 구현, M1 pointer client 자동 검증. 실기기 injection·타 구현 호환성은 미검증. 변경하면 이 문서와 [DECISIONS](DECISIONS.md)를 함께 수정한다. **Barrier 호환 wire가 아니다.** `Hello` 등의 이름이 유사해도 message code/encoding은 다르다.
 
 ## 1. transport와 경계
 
@@ -166,3 +166,8 @@ v1.0은 major/minor **정확히 일치**해야 한다. minor downgrade나 unknow
 magic/길이 불량은 바로 close. magic이 맞고 버전만 다르면 공통 header 1.0의 Error Version을 best-effort로 보내고 close; 상대가 Error payload를 해석 못 해도 연결은 종료된다. 이후 입력 주입은 없다. 반사/증폭을 줄이기 위해 handshake 전 오류 응답은 1 frame로 제한한다. frame 제한뿐 아니라 String/Vec 길이 제한을 deserialize 시점에 적용하여 길이 prefix만 큰 입력의 선할당을 막는다. Ready client 한 개, pending handshake 최대 4개, IP별 재시도 rate limit을 후속 구현한다.
 
 M8 clipboard는 v1.0에 몰래 넣지 않는다. 후보 schema: `ClipboardOffer(origin_id:[u8;16], change_id:u64, mime:u8, size:u32)`, `ClipboardRequest(origin_id,change_id)`, `ClipboardData(origin_id,change_id,offset:u32,bytes:Vec<u8>)`, `ClipboardCancel(origin_id,change_id)`. UTF-8 text만, 전체 1MiB/청크 16KiB, 동시에 한 transfer. 협상·취소·stale version·loop 방지·별도 bulk stream 여부를 확정한 뒤 v1.1로 정의한다. 이것은 reserved 설계 스케치이며 현재 codec 명세가 아니다.
+
+
+## M1 구현 참고
+
+wire 값·schema 변경은 없다. client는 Pointer만 협상하며 Enter는 inactive 상태에서 마지막 epoch보다 큰 값만 받는다. Button source_ms는 epoch 사이에서도 session 전체 비감소다. `EnterAck`/`LeaveAck`/`Pong`은 actor의 선행 post 호출 뒤 생성되며 OS 앱 소비 완료를 뜻하지 않는다. 단일 클릭만 구현되어 click-state는 down/up 모두 1이다(ADR-015, 다중 클릭 M3). 테스트 peer의 `m1`/`click`은 ACK를 기다리고 heartbeat를 유지한다. `eof`/`blackhole`은 Down 뒤 Ping barrier를 확인하고 fault를 시작한다.

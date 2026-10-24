@@ -8,5 +8,12 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+edgebridge-core.workspace = true
+edgebridge-protocol.workspace = true
+thiserror.workspace = true
 
-# M1에서 objc2-core-graphics 또는 core-graphics 추가 예정. FFI crate이므로 unsafe_code=deny를 상속하지 않는다.
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+core-graphics = "0.25"
+
+# ADR-015: core-graphics wrapper를 사용한다. FFI crate이므로 unsafe_code=deny를 상속하지 않는다.

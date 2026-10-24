@@ -147,7 +147,7 @@ capture ring 2048 slots, network outbound 512 frames, injection queue 512 comman
 
 ## 8. TOML 제안
 
-아래는 문서 예시이며 현재 parser나 config 파일은 없다. OS별 `--config` 경로를 명시하는 것으로 시작하고 자동 검색은 뒤로 미룬다.
+아래는 설정 예시이며 M0에서 parser와 config 예제 파일을 구현했다. OS별 `--config` 경로를 명시하는 것으로 시작하고 자동 검색은 뒤로 미룬다.
 
 ```toml
 # Windows 예시
@@ -182,3 +182,12 @@ invert_y = false
 ```
 
 unknown field, 중복 screen name, 자기 자신을 neighbor로 지정, invalid hotkey, 비유한 sensitivity 또는 0 이하, 선택 화면 미발견은 시작 오류다. runtime hot reload는 MVP에서 금지한다. mapping/화면/보안 설정 변경은 release + reconnect 후 적용한다. plaintext-dev는 loopback 외 bind/connect에서 별도 `--allow-insecure-lan` 명시가 필요하다. 서비스 자동 시작과 clipboard는 이 모드에서 비활성화한다.
+
+
+## 9. M1 구현 경계 (2026-10-24)
+
+`core::session::ClientSession`은 Ready 뒤 시작하고 효과를 반환한다. actor는 효과를 순서대로 실행하고 post가 반환된 효과만 `committed`로 기록한다. `receive`/`tick` 오류를 받은 호출자는 반드시 `abort`를 호출하고 release 효과를 best-effort로 실행해야 한다. 실패한 release는 ledger에 남아 마지막 cleanup에서 재시도할 수 있으며 성공한 up은 반복되지 않는다. reconnect는 새 객체를 요구한다.
+
+client는 Tokio 네트워크 task의 atomic abort를 큐보다 먼저 검사한다. EOF/codec/write/queue 오류 뒤 pending 입력은 폐기한다. 정상 종료와 오류 모두 cleanup이 네트워크 종료 통지보다 먼저다. 오류 종료 통지는 최대 100ms best-effort이고 Ctrl-C도 같은 cleanup 경로를 쓴다. 실제 프로세스 강제 종료는 이 경로를 실행할 수 없다. 입력을 처리하지 않는 fake backend로 이 루프를 테스트한다.
+
+M1의 button click-state=1, sleep/lock 알림·display callback·재접속 미구현은 ADR-015에 기록했다. 현재 구현을 §6의 모든 M6 복구 항목 완료로 읽지 않는다.

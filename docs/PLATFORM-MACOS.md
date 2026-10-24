@@ -1,6 +1,6 @@
 # macOS client backend
 
-상태: API 조사 + 로컬 Xcode SDK header 확인, 실제 injection은 아직 실행하지 않았다. Mac에서 시작하되 fake server가 실제 protocol을 사용하도록 한다. client는 입력 **주입만** 수행한다.
+상태: M1 Quartz backend 구현·컴파일 완료, 실제 injection은 아직 실행하지 않았다. Mac에서 시작하되 fake server가 실제 protocol을 사용하도록 한다. client는 입력 **주입만** 수행한다.
 
 ## 1. 권한과 생명주기
 
@@ -74,3 +74,10 @@ M1 필수 기록: macOS build, CPU arch, Xcode SDK, 실행 경로/서명/권한 
 ### 조사 근거
 
 웹 Apple 문서는 일부 페이지가 JS shell만 반환하여 로컬 Xcode SDK `CoreGraphics.framework/Headers/CGEvent.h`, `CGEventTypes.h`도 2026-10-24에 확인했다. CreateMouseEvent/KeyboardEvent/ScrollWheelEvent, click-state 필드, `CGEventPost`의 void 반환, post/listen permission API 분리는 header에서 확인했다. TCC 실제 귀속·사용감·injection 성공은 아직 실험하지 않았다.
+
+
+## M1 현재 구현과 수동 검증
+
+ADR-015의 core-graphics/core-foundation 조합을 사용한다. AX 신뢰와 post preflight가 모두 true여야 시작/Ready/Enter를 허용한다. `--request-permission` 외에는 권한 prompt를 요청하지 않는다. 실제 환경별 허용 대상은 [M1 검증 절차](M1-VERIFICATION.md)에서 사용자 확인이 필요하다.
+
+현재 click-state는 항상 1이고 AppKit multi-click interval 연동은 미구현이다. display 변경은 1s health polling이며 callback/sleep/lock 알림은 M6까지 남는다. `--observe-pointer`는 이동 post 약 50ms 뒤 idle에서 CGEvent 위치를 읽어 global target/actual/오차를 출력한다. event tap을 설치하지 않으며 자동 테스트에서 실행되지 않는다. 관측 로그는 실제 앱의 클릭 처리 성공을 보증하지 않는다.
