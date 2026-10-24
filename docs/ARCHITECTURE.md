@@ -14,7 +14,7 @@ Windows = 입력 제공 server/listener, Mac = 입력 수신 client/connector. M
 6. key/button edge를 조용히 버리지 않는다. 큐 포화·잘못된 순서·오래된 입력은 세션 중단으로 처리한다.
 7. 일반 로그에는 키 값, 입력 문자열, clipboard 내용, pairing 비밀을 남기지 않는다. M2의 명시적 진단 모드에서만 테스트 키를 기록한다.
 
-## 2. 제안 workspace (아직 생성하지 않음)
+## 2. workspace (M0에서 생성)
 
 ```text
 crates/

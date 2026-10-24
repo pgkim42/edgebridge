@@ -4,14 +4,15 @@
 
 ## M0 — workspace skeleton / 계약 고정
 
-향후 작업으로 Cargo workspace, 공통 DTO/config/error 경계와 fake peer를 만든다. 현재 작업은 문서만 생성한다.
+Cargo workspace, 공통 DTO/config/error 경계와 fake peer. **2026-10-24 Mac에서 구현** (Windows 실기기 build는 미확인).
 
-- [ ] README의 crate 이름으로 skeleton 생성. Mac에서 공통 crate와 client/test-peer build; Windows에서 server build.
-- [ ] codec golden fixture 3개 이상: Hello, MouseMove, Key. byte fragmentation/concatenation, invalid length/version/tag/trailing bytes 거부.
-- [ ] protocol caps 축소 협상(Pointer-only), Ready 전 input 차단, Busy 거부 확인.
-- [ ] TOML unknown field/없는 neighbor/중복 이름/잘못된 sensitivity/escape 오류가 명확하다.
-- [ ] fake clock의 lease/epoch 상태 테스트. unsafe는 platform 경계에 한정.
-- [ ] 사용 toolchain/MSRV 및 dependency 버전 잠금. 이후 build 명령을 README에 추가.
+- [x] ARCHITECTURE §2의 crate 이름으로 skeleton 생성. Mac에서 전체 build/test 통과.
+  - [ ] Windows 실기기에서 server build. 현재는 Mac에서 `cargo check --target x86_64-pc-windows-msvc`만 통과 (link/실행 미검증).
+- [x] codec golden fixture 6개 (Ping, server/client Hello, MouseMove, Key, Scroll). Rust encoder와 독립적으로 Python `struct`로 계산한 bytes. fragmentation/concatenation, invalid length/magic/version/flags/kind/reserved kind/trailing/truncated/seq/enum 값/NaN 거부 — `crates/protocol/tests/`.
+- [x] caps 축소 협상(Pointer-only), Ready 전 input 차단(BadState), Busy 거부, 늦은 handshake가 Ready 세션을 빼앗지 않음 — `crates/core/tests/handshake.rs`, loopback TCP — `crates/test-peer/tests/loopback.rs`.
+- [x] TOML unknown field/잘못된 role/자기 자신 neighbor/빈 이름/잘못된 sensitivity/escape hotkey/LAN 평문 오류 — `crates/core/tests/config.rs`. "중복 screen 이름"은 v1 schema(local/left 두 이름)에서 자기 자신 neighbor 검사로 대체.
+- [x] fake clock(`Millis`) lease/heartbeat/epoch 테스트 — `crates/core/src/heartbeat.rs`. `unsafe_code = "deny"`는 platform crate를 제외한 workspace 전체에 적용.
+- [x] toolchain 1.96.0 고정(`rust-toolchain.toml`), `rust-version = 1.96`, `Cargo.lock` 커밋. build 명령은 README.
 
 M0는 hook이나 permission을 실제로 시험한 단계가 아니다.
 

@@ -1,0 +1,17 @@
+# Mac client 예시. ARCHITECTURE.md §8.
+role = "client"
+name = "mac"
+
+[network]
+server = "127.0.0.1:24810" # 실기기: Windows IP (예: 192.168.1.10:24810) + --allow-insecure-lan
+security = "plaintext-dev"
+
+[screen]
+selector = "builtin"
+
+[modifiers]
+profile = "physical" # 또는 ctrl-cmd-swap. KEYMAP.md 참조
+
+[scroll]
+invert_x = false
+invert_y = false

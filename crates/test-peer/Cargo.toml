@@ -1,0 +1,17 @@
+[package]
+name = "edgebridge-test-peer"
+description = "EdgeBridge fake server/client for protocol and fault testing (loopback only)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+edgebridge-protocol.workspace = true
+edgebridge-core.workspace = true
+getrandom.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

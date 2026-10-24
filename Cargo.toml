@@ -1,0 +1,24 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+edgebridge-protocol = { path = "crates/protocol" }
+edgebridge-core = { path = "crates/core" }
+edgebridge-platform-windows = { path = "crates/platform-windows" }
+edgebridge-platform-macos = { path = "crates/platform-macos" }
+serde = { version = "1", features = ["derive"] }
+postcard = { version = "1", default-features = false, features = ["alloc"] }
+thiserror = "2"
+toml = "0.9"
+getrandom = "0.3"
+
+[workspace.lints.rust]
+unsafe_code = "deny"

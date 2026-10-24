@@ -1,0 +1,17 @@
+# Windows server 예시. ARCHITECTURE.md §8.
+role = "server"
+
+[network]
+bind = "127.0.0.1:24810" # 실기기 실험 시 private NIC IP로 바꾸고 --allow-insecure-lan 필요
+security = "plaintext-dev" # M7 이후 tls-pinned. 자동 fallback 없음
+
+[layout]
+local = "windows"
+left = "mac" # Mac은 Windows 모니터 왼쪽. client의 name과 같아야 한다
+
+[screen]
+selector = "primary"
+
+[input]
+sensitivity = 1.0
+escape_hotkey = "LeftCtrl+LeftAlt+Escape" # remap 전 물리 키

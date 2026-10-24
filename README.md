@@ -2,7 +2,7 @@
 
 Windows 데스크톱에 연결된 키보드·마우스로 왼쪽의 MacBook을 조작하는 개인용 software KVM. 화면 영상은 전송하지 않는다. 두 컴퓨터는 자기 화면을 표시하고, 입력만 LAN으로 전달한다.
 
-**현재 상태: 설계 단계 (2026-10-24).** 구현·Cargo workspace·Git 저장소는 아직 없다. 문서의 수치와 동작은 구현 계약 또는 검증 목표이며, 실기기 검증 결과가 아니다.
+**현재 상태: M0 완료 (2026-10-24).** Cargo workspace, wire codec, handshake/heartbeat, config 검증, loopback fake peer가 있다. 실제 입력 capture/injection(M1~)은 아직 없다. 문서의 수치와 동작은 구현 계약 또는 검증 목표이며, 실기기 검증 결과가 아니다.
 
 ```text
 물리 배치                   키보드 + 마우스
@@ -39,6 +39,32 @@ TCP 연결 시작: Mac client --> Windows server (기본 제안 포트 24810)
 5. [ROADMAP](docs/ROADMAP.md): M0–M8와 수락 기준, 챌린지 단계 대응
 6. [DECISIONS](docs/DECISIONS.md): 결정 이유와 대안
 7. [OPEN-QUESTIONS](docs/OPEN-QUESTIONS.md): 구현 전에 결정/측정할 항목
+
+## 빌드와 실행
+
+toolchain은 `rust-toolchain.toml`(1.96.0)로 고정된다.
+
+```sh
+cargo test --workspace                              # 단위 + golden + loopback 테스트
+cargo clippy --workspace --all-targets -- -D warnings
+cargo check --workspace --target x86_64-pc-windows-msvc   # Mac에서 Windows 타깃 타입 검사만
+
+# config 검증 (backend는 아직 없어 exit 69로 끝난다)
+cargo run -p edgebridge-client -- --config config/client.example.toml
+cargo run -p edgebridge-server -- --config config/server.example.toml
+
+# loopback fake peer: handshake + heartbeat + Disconnect
+cargo run -p edgebridge-test-peer -- fake-server --bind 127.0.0.1:24899 &
+cargo run -p edgebridge-test-peer -- fake-client --connect 127.0.0.1:24899 --pointer-only
+```
+
+| crate | 역할 |
+|---|---|
+| `crates/protocol` | frame codec, message DTO, 한계값. OS/async 의존 없음 |
+| `crates/core` | handshake, heartbeat/lease, epoch, HID 이름표, TOML config |
+| `crates/platform-windows` / `platform-macos` | OS backend 자리 (M2 / M1) |
+| `crates/server` / `client` | 실행 파일. 지금은 config 검증만 |
+| `crates/test-peer` | loopback fake server/client |
 
 ## 출발점과 범위 차이
 

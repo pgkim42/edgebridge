@@ -1,0 +1,12 @@
+[package]
+name = "edgebridge-platform-windows"
+description = "EdgeBridge Windows backend: low-level hooks, Raw Input, input suppression"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+# M2에서 windows crate 추가 예정. FFI crate이므로 workspace의 unsafe_code=deny를 상속하지 않는다.

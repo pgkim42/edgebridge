@@ -102,7 +102,7 @@ Keyboard capability의 v1 지원 usage는 [KEYMAP](KEYMAP.md)의 MVP 행이다. 
 | 입력 큐 oldest | 100ms | coalesce 가능 move 외 abort; key/button drop 금지 |
 | graceful close | 최대 100ms 전송 시도 | cleanup은 먼저 실행 |
 
-Ready 완료 시 lease를 시작한다. Pong은 미응답 token과 일치하고 token 발행 후 1000ms 이내여야 유효하다. 발행 간격 250ms, 최대 4개 outstanding, token별 발행시각을 저장한다. 이미 처리한 token/모르는 token은 protocol error. 양쪽 각각 peer 진행을 검사한다. Ping은 입력 순서를 넘어서 우선 처리하지 않는다. network reader가 바로 Pong을 보내면 injection actor가 멈춘 상태를 놓친다.
+Ready 완료 시 lease를 시작한다. Pong은 미응답 token과 일치하고 token 발행 후 1000ms 이내여야 유효하다. 발행 간격 250ms, 최대 4개 outstanding, token별 발행시각을 저장한다. 이미 처리한 token/모르는 token은 protocol error. 상대는 앞선 명령을 순서대로 처리한 뒤 Pong을 보내므로 Pong은 발행 순서(FIFO)로 도착해야 하며, 가장 오래된 미응답 token이 아니면 protocol error다. 양쪽 각각 peer 진행을 검사한다. Ping은 입력 순서를 넘어서 우선 처리하지 않는다. network reader가 바로 Pong을 보내면 injection actor가 멈춘 상태를 놓친다.
 
 초기 Entering을 포함해 수신 명령을 제때 처리 못 하면 lease보다 100ms queue age가 먼저 실패할 수 있다. OS가 정지한 동안 정확히 timeout 시각에 cleanup할 수는 없다. wake에서는 timeout을 연장하지 않고 항상 session을 버린다.
 

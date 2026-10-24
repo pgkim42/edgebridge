@@ -1,0 +1,18 @@
+[package]
+name = "edgebridge-client"
+description = "EdgeBridge macOS client binary"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+edgebridge-protocol.workspace = true
+edgebridge-core.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+edgebridge-platform-macos.workspace = true
+
+[lints]
+workspace = true

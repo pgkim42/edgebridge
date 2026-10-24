@@ -1,0 +1,12 @@
+[package]
+name = "edgebridge-platform-macos"
+description = "EdgeBridge macOS backend: Quartz CGEventPost injection, TCC, display info"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+# M1에서 objc2-core-graphics 또는 core-graphics 추가 예정. FFI crate이므로 unsafe_code=deny를 상속하지 않는다.
