@@ -3,3 +3,5 @@
 .DS_Store
 *.pem
 *.key
+/dist/
+__pycache__/

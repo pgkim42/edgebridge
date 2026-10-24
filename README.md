@@ -1,5 +1,7 @@
 # EdgeBridge
 
+[![CI](https://github.com/pgkim42/edgebridge/actions/workflows/ci.yml/badge.svg)](https://github.com/pgkim42/edgebridge/actions/workflows/ci.yml)
+
 Windows 데스크톱의 키보드·마우스로 옆에 놓인 MacBook을 조작하기 위한 Rust 프로젝트입니다. 두 컴퓨터는 각자의 화면을 사용하고, LAN으로 입력만 전달하는 software KVM을 목표로 합니다. 화면 영상은 전송하지 않습니다.
 
 **현재 위치: Mac 입력 클라이언트(M1)와 Windows 입력 수집 진단 도구(M2)가 구현됐습니다. Windows에서 수집한 입력을 Mac으로 보내는 연결(M3)은 아직 없습니다.**
@@ -15,9 +17,49 @@ Windows 데스크톱의 키보드·마우스로 옆에 놓인 MacBook을 조작�
 | 화면 경계를 넘으면 자동 전환 | M5 |
 | 재연결·절전 등 오류 복구, TLS 인증, 클립보드 | M6 / M7 / M8 |
 
-자동 테스트와 Windows 타깃 타입 검사는 Mac에서 수행했습니다. Windows 실행·입력 수집 성공을 확인했다는 뜻은 아닙니다. 단계별 완료 조건은 [로드맵](docs/ROADMAP.md)에 있습니다.
+GitHub Actions가 Windows x64와 Apple Silicon Mac에서 자동 테스트, 네이티브 release 빌드, 패키지의 CLI 실행 검사를 수행하도록 구성돼 있습니다. 실제 키보드·마우스 수집이나 Accessibility/Quartz 동작 검증은 별개입니다. 단계별 완료 조건은 [로드맵](docs/ROADMAP.md)에 있습니다.
 
-## Windows: 입력 수집 진단 실행
+## 빌드된 파일 받기: GitHub Actions
+
+Rust를 설치하지 않고 Windows 실행 파일을 받아 시험할 수 있습니다.
+
+1. GitHub에 로그인하고 [Actions → CI](https://github.com/pgkim42/edgebridge/actions/workflows/ci.yml)를 엽니다.
+2. `main`의 **성공한 실행**을 선택합니다. 실행의 커밋과 아래 패키지의 `build-info.json` 커밋을 대조할 수 있습니다.
+3. 화면 아래 **Artifacts**에서 자신의 환경에 맞는 항목을 다운로드합니다.
+
+| Artifact 이름 | 안에 들어 있는 패키지 |
+|---|---|
+| `edgebridge-x86_64-pc-windows-msvc-<커밋>` | Windows x64용 ZIP: `edgebridge-server.exe`, `edgebridge-test-peer.exe` |
+| `edgebridge-aarch64-apple-darwin-<커밋>` | Apple Silicon/macOS 15 이상용 tar.gz: `edgebridge-client`, `edgebridge-test-peer` |
+
+다운로드한 Artifact ZIP을 풀면 **실행 파일 패키지와 `.sha256` 체크섬**이 있습니다. 그 안의 Windows ZIP 또는 Mac tar.gz도 풀어 사용합니다. 패키지에는 예제 설정, 이 README, 설계·검증 문서와 원본 커밋/target/Rust 버전을 적은 `build-info.json`도 들어 있습니다. Intel Mac과 Windows ARM 빌드는 현재 제공하지 않습니다.
+
+Windows에서는 안쪽 ZIP을 푼 폴더에서 PowerShell을 열고 실행합니다.
+
+```powershell
+.\edgebridge-server.exe --capture-log --duration-secs 30
+```
+
+Mac tar.gz는 실행 권한을 보존합니다. 압축을 푼 폴더에서 터미널 A/B에 각각 실행하면 Windows 없이 커서 이동을 시험할 수 있습니다.
+
+```sh
+# 터미널 A
+./edgebridge-test-peer fake-server --bind 127.0.0.1:24810 --pointer-only --script m1
+# 터미널 B
+./edgebridge-client --config config/client.example.toml --observe-pointer
+```
+
+Mac 다운로드 빌드에는 Apple Developer 서명·공증이 없습니다. Gatekeeper 확인과 손쉬운 사용 권한은 자동 처리하지 않습니다. 실제 커서를 움직이므로 아래 Mac 검증 설명도 읽고 진행하세요.
+
+### 언제 자동 실행되나
+
+- `main` 푸시와 `main`으로 향하는 PR: 포맷, 패키지 테스트, Rust workspace 테스트, Clippy, 네이티브 release 빌드, 압축 해제 후 CLI 스모크를 실행합니다. 스모크는 입력 캡처·주입 없이 인자/설정 처리만 확인합니다.
+- 성공한 `main` 푸시: Windows/Mac 패키지를 Artifact로 올려 **14일간** 보관합니다. PR 결과는 다운로드용 패키지로 올리지 않습니다.
+- 수동 실행: Actions → CI → **Run workflow**에서 `main`을 선택합니다. 성공하면 같은 방식으로 패키지가 만들어집니다.
+
+검사나 빌드가 실패한 target은 업로드하지 않습니다. Windows와 Mac 결과는 독립적이므로 전체 성공 여부는 CI 실행 결과에서 확인하세요. 여기서 CD는 **검증된 개발 빌드를 Artifact로 전달하는 것**이며, 공개 Release 발행이나 crates.io 배포는 하지 않습니다. 표준 공개 저장소 러너를 사용하며 별도 secret 설정이 필요 없습니다.
+
+## Windows: 직접 빌드해서 입력 수집 진단 실행
 
 Windows에서 **Rust MSVC toolchain과 Visual Studio C++ Build Tools**가 필요합니다. 저장소 루트의 PowerShell에서 실행합니다. Rust 버전은 `rust-toolchain.toml`의 1.96.0으로 고정됩니다.
 

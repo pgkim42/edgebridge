@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  native:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-2025
+            target: x86_64-pc-windows-msvc
+            package: edgebridge-server
+            archive: zip
+            python: python
+            rustflags: -C target-feature=+crt-static
+          - name: macOS arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+            package: edgebridge-client
+            archive: tar.gz
+            python: python3
+            rustflags: ""
+    defaults:
+      run:
+        shell: bash
+    env:
+      TARGET: ${{ matrix.target }}
+      PACKAGE: ${{ matrix.package }}
+      PYTHON: ${{ matrix.python }}
+      ARCHIVE: ${{ matrix.archive }}
+      RUSTFLAGS: ${{ matrix.rustflags }}
+      MACOSX_DEPLOYMENT_TARGET: "15.0"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install repository-pinned Rust
+        run: |
+          rustup show active-toolchain
+          rustup target add "$TARGET"
+          rustc -vV
+          "$PYTHON" --version
+
+      - name: Cache Rust dependencies and build outputs
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: rust-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.github/workflows/ci.yml') }}
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Test package contracts
+        run: '"$PYTHON" -m unittest discover -s .github/scripts -p "test_*.py"'
+
+      - name: Test workspace on native target
+        run: cargo test --workspace --locked --target "$TARGET"
+
+      - name: Check Clippy
+        run: cargo clippy --workspace --all-targets --locked --target "$TARGET" -- -D warnings
+
+      - name: Build optimized native programs
+        run: cargo build --release --locked --target "$TARGET" -p "$PACKAGE" -p edgebridge-test-peer
+
+      - name: Create downloadable package
+        run: '"$PYTHON" .github/scripts/package.py --target "$TARGET" --output dist'
+
+      - name: Verify archive and smoke native programs
+        run: '"$PYTHON" .github/scripts/smoke.py --target "$TARGET" --archive "dist/edgebridge-${TARGET}.${ARCHIVE}"'
+
+      - name: Upload verified build
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: edgebridge-${{ matrix.target }}-${{ github.sha }}
+          path: |
+            dist/edgebridge-${{ matrix.target }}.${{ matrix.archive }}
+            dist/edgebridge-${{ matrix.target }}.sha256
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
