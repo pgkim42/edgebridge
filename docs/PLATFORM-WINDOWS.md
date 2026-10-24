@@ -83,3 +83,37 @@ M2 기록에는 OS build, keyboard 종류/레이아웃, mouse model/poll rate, �
 수집 시작 전에 이미 누르고 있던 키의 상태는 알 수 없다. 처음 관측한 down은 실제로 autorepeat여도 `Down`으로 표시하고, 이전 down을 보지 못한 up도 기록한다. 입력 억제를 시작할 때 필요한 held snapshot/escape/latch는 이 수집 전용 구현에 포함하지 않는다.
 
 Mac에서 정규화·queue·duration histogram을 테스트하고 Windows MSVC target을 검사했다. 실제 hook 설치/전달, foreground 전환, 장치 제거, DPI 변경, callback 성능과 종료 복구는 Windows에서 별도 확인해야 한다. Raw+LL 억제 실험 전까지 ADR-004의 선택은 계속 Proposed다.
+
+## 7. Windows 실기기 검증 절차
+
+현재 기록은 **Mac 자동 테스트·Windows 타깃 검사 통과, 아래 실기기 항목 미확인**이다. M2 capture-only CLI는 네트워크 설정 없이 실행하며 Mac이나 방화벽 변경이 필요 없다. 관리자 실행을 기본으로 요구하지 않는다. Windows 11 interactive desktop에서 Rust MSVC toolchain과 C++ Build Tools로 빌드한다.
+
+저장소 루트의 PowerShell:
+
+```powershell
+cargo build -p edgebridge-server
+.\target\debug\edgebridge-server.exe --help
+.\target\debug\edgebridge-server.exe --check-config --config config/server.example.toml
+.\target\debug\edgebridge-server.exe --capture-log --duration-secs 30
+$LASTEXITCODE
+```
+
+`--capture-log`는 키 코드를 출력하는 명시적 진단 동의다. 빈 메모장 등에서 테스트 키만 입력한다. 일반 실행/설정 검사에서는 키를 기록하지 않는다. duration은 양의 정수이며 생략하면 Ctrl-C까지 수집한다. config 관련 옵션과 capture 옵션을 섞으면 실행 전 종료 코드 64로 거부한다. Windows가 아닌 OS에서는 capture가 종료 코드 69로 거부된다. 설정 오류는 78, 수집 설치/실행/종료 오류는 1이다.
+
+검증할 때 각 항목에 실제 로그와 관측 결과를 붙인다.
+
+1. **시작과 passthrough:** `Display`/`Monitor`에 모니터 bounds와 DPI가 나온다. 메모장에 입력한 문자가 정상적으로 나타나고 마우스 커서·클릭·스크롤도 평소대로 동작해야 한다. 이 모드는 모든 LL 이벤트를 다음 hook으로 통과시킨다.
+2. **키와 repeat:** A를 누르고 반복시킨 뒤 놓고, 좌우 Shift/Ctrl/Alt/Win을 각각 시험한다. `Key`의 `state`는 Down → Repeat → Up이고 modifier 좌우가 구분돼야 한다. 같은 vk를 공유하는 numpad navigation/독립 arrow도 구분되는지 확인한다. 시작 전에 이미 누른 키는 상태를 알 수 없으므로 모두 놓고 시작한다.
+3. **mouse와 순서:** 이동·Left/Right/Middle/X1/X2 down/up·양방향 wheel을 시험한다. 미지원 버튼/수평 wheel은 미확인으로 기록한다. 이동은 `RawMouseMotion`만, button/wheel은 LL만 출력돼야 한다. `seq`는 출력 이벤트마다 1 증가한다. 빠른 이동 직후 클릭에서 관측 순서를 기록하되 두 API의 물리 발생 순서가 보장된다고 해석하지 않는다.
+4. **장치와 환경:** 다른 일반 앱을 foreground로 바꾸고 입력이 계속 기록되는지 확인한다. mouse unplug/replug의 `RawDevice`, 외부 화면/배율 변경의 `Display`/`Monitor`를 확인한다. absolute tablet/RDP 장치가 있으면 `Absolute`와 `virtual_desktop`을 기록하고 relative count로 잘못 표시하지 않는지 확인한다.
+5. **종료와 부하:** 30초 만료 시 자동 종료와 `$LASTEXITCODE -eq 0`을 확인한다. 다시 실행해 Ctrl-C 종료도 확인한다. 종료 뒤 일반 입력이 정상이어야 한다. 지원 mouse의 125/1000Hz 등 실제 poll rate와 부하를 기록하고 더 긴 duration으로 반복한다.
+
+종료의 `CaptureStats`에서 확인할 값:
+
+- `errors: []`, `events_dropped: 0`: 오류·overflow 없는 run. 누락이 있으면 이 run은 실패이며 capture는 중단된다.
+- `events_enqueued = events_delivered + events_undelivered`: 수집·전달 수의 관계. 시간 제한/Ctrl-C 순간 queue에 남은 이벤트는 `events_undelivered`로 집계되며 성공적으로 출력됐다고 간주하지 않는다.
+- `callback_duration.p99_ns < 100000`, `max_ns < 1000000`은 초기 측정 목표다. 초과 여부와 OS/다른 hook/부하를 함께 기록한다. `CallNextHookEx` 이후의 측정이라 하위 hook의 시간도 포함한다. 자체 callback 코드만의 비용으로 해석하지 않는다.
+- `raw_input_duration`: Raw Input 읽기·foreground cleanup 시간. `filtered_mouse_move`는 LL 이동의 의도적 제외 수, `filtered_injected`는 합성 LL 입력의 의도적 제외 수다.
+- `dpi_awareness: AlreadySet`이면 기존 수준은 검증되지 않았다. monitor 좌표가 physical pixel인지 확인 없이 DPI/edge 수락 항목을 완료로 바꾸지 않는다.
+
+기록: Windows OS/build, 실행 권한 수준, keyboard 종류/layout, mouse model/poll rate, 화면 bounds/DPI/배율, 실행 명령·duration, 종료 코드·통계, 각 수동 관측 결과. 현 단계에서는 Raw+LL 억제 실험, callback 최대시간 보장, Mac forwarding을 통과했다고 기록하지 않는다.

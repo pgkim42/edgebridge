@@ -13,6 +13,7 @@ edgebridge-core.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 edgebridge-platform-windows.workspace = true
+ctrlc = "3.5"
 
 [lints]
 workspace = true

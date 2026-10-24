@@ -1,6 +1,6 @@
 # 로드맵과 수락 기준
 
-상태: M0 완료, M1 구현·자동 검증 완료 / 실기기 수락 대기 (2026-10-24). 이 문서는 완료 보고서가 아니다. milestone 완료는 코드 존재가 아니라 아래 관측 가능한 조건으로 판정한다. 개발 순서는 **Mac client → Windows capture → 연결 → keyboard → edge → fault → 보안 → clipboard**다.
+상태: M0 완료, M1 구현·자동 검증 완료 / 실기기 수락 대기, M2 capture-only 구현·자동 검증 완료 / Windows 실기기 수락 대기 (2026-10-24). 이 문서는 완료 보고서가 아니다. milestone 완료는 코드 존재가 아니라 아래 관측 가능한 조건으로 판정한다. 개발 순서는 **Mac client → Windows capture → 연결 → keyboard → edge → fault → 보안 → clipboard**다.
 
 ## M0 — workspace skeleton / 계약 고정
 
@@ -31,7 +31,11 @@ Mac loopback fake server가 listen, Mac client가 접속한다. 선택 화면·�
 
 ## M2 — Windows capture-only logging + Raw Input spike
 
-이 단계에서는 normal run이 **입력을 억제하지 않는다**. 별도의 짧은 opt-in suppression 실험만 5초 자동 해제 watchdog을 붙여 수행한다.
+현재 구현: `edgebridge-server --capture-log [--duration-secs N]`이 Windows 전용 수집 진단을 실행한다. normal run은 **입력을 억제하지 않으며**, 네트워크 listen/Mac forwarding도 하지 않는다. 설정만 검사하려면 `--check-config --config <path>`를 사용한다. 자세한 실행·수동 확인은 [Windows 검증 절차](PLATFORM-WINDOWS.md#7-windows-실기기-검증-절차)를 따른다.
+
+자동 검증: 키 반복·좌우/physical identity·injected 제외·signed wheel·Raw relative/absolute·장치 변경·capture 순서, bounded SPSC queue와 duration histogram을 Mac에서 테스트했다. 서버 CLI의 명시적 진단 모드/잘못된 옵션/설정 오류/비-Windows 거부도 자동 검증한다. workspace 96 tests, Mac/Windows MSVC target all-target Clippy를 통과했다. 실제 Windows hook 설치·입력 전달·성능·종료 수락을 대신하지 않는다.
+
+아래 항목은 Windows 실기기 증거를 얻기 전까지 미완료다. 별도의 opt-in suppression 실험(5초 자동 해제 watchdog 포함)은 아직 구현하지 않았고, Raw+LL의 Proposed 판정도 유지한다.
 
 - [ ] 일반 키/좌우 modifiers, buttons, signed wheel, relative motion을 관측. local 앱 입력은 그대로 동작.
 - [ ] callback에서 할당/로그/IO/lock 대기가 없고 측정 ring으로 duration 수집. p99 <100µs 목표/최대·부하 함께 보고.
